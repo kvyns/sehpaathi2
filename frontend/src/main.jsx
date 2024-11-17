@@ -22,7 +22,7 @@ import Error from "./pages/Error/Error.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route path="/" element={<Layout/>} errorElement = {<Error/>} basename="/frontend">
+    <Route path="/" element={<Layout/>} errorElement = {<Error/>}>
       <Route path="" element={<Home />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/signin" element={<Signin />} />
