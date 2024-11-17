@@ -11,11 +11,11 @@ import {
 
 import { Provider } from "react-redux";
 import { store } from "./app/store.js";
-import Home from "./Pages/Home/Home.jsx";
+import Home from "./pages/Home/Home.jsx";
 import Signup from "./pages/Signup/Signup.jsx";
 import About from "./pages/About/About.jsx";
 import Signin from "./pages/Signin/Signin.jsx";
-import Layout from "./layout.jsx";
+import Layout from "./Layout.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import PrivateRoute from "./route/PrivateRoute.jsx";
 import Error from "./pages/Error/Error.jsx";
