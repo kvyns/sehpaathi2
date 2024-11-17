@@ -20,7 +20,7 @@ const Sidebar = ({ selectedRole, handleSelectRole, handleLogOut }) => {
     >
       <div className="flex items-center p-3 border-b border-white/10 whitespace-nowrap">
         <img
-          src="src/assets/logo.png"
+          src="frontend/public/assets/logo.png"
           alt="Sehpaathi Logo"
           className="w-10 h-10 ml-2 object-contain flex-shrink-0 transition-transform duration-300"
         />

@@ -45,7 +45,7 @@ function Header() {
         >
           <div className="p-0">
             <img
-              src="/src/assets/logo.png"
+              src="frontend/public/assets/logo.png"
               alt="SEHPAATHI Logo"
               className="h-12 w-auto md:h-16"
             />

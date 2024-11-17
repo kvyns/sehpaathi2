@@ -110,7 +110,7 @@ const About = () => {
               >
                 <div className="relative mb-6">
                   <img
-                    src="src/assets/logo.png"
+                    src="frontend/public/assets/logo.png"
                     alt={member.name}
                     className="w-32 h-32 rounded-full mx-auto ring-2 ring-blue-100 group-hover:ring-blue-300 transition-all"
                   />
