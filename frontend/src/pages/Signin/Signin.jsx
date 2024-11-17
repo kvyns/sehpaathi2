@@ -70,7 +70,7 @@ const SignIn = () => {
             <div className="flex items-center justify-center gap-2 mb-6">
               <div className="w-10 h-10 flex items-center justify-center">
                 <img
-                  src="frontend/public/assets/logo.png"
+                  src="/assets/logo.png"
                   alt="Sehpaathi Logo"
                   className="w-10 h-10 object-contain"
                 />

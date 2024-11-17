@@ -107,7 +107,7 @@ const Profile = ({ userName, handleLogOut }) => {
           className="flex items-center ring-1 ring-black  hover:bg-gray-100 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <img
-            src="frontend/public/assets/logo.png"
+            src="/assets/logo.png"
             alt="Profile"
             className="w-10 h-10 rounded-full object-cover"
           />
@@ -155,7 +155,7 @@ const Profile = ({ userName, handleLogOut }) => {
               <div className="text-center">
                 <div className="relative inline-block">
                   <img
-                    src="frontend/public/assets/logo.png"
+                    src="/assets/logo.png"
                     alt="Profile"
                     className="w-32 h-32 rounded-full object-cover mx-auto border-4 border-white shadow-lg"
                   />

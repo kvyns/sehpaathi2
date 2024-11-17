@@ -59,7 +59,7 @@ function Footer() {
           <div className="space-y-6">
             <div className="flex items-center">
               <img
-                src="frontend/public/assets/logo.png"
+                src="/assets/logo.png"
                 alt="SEHPAATHI Logo"
                 className="h-12 w-auto mr-4"
               />
