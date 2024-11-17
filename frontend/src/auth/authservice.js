@@ -7,7 +7,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc, getDoc, Timestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
-
+// capitalized the name
 const googleProvider = new GoogleAuthProvider();
 
 // Helper function to convert Firestore data to serializable format
