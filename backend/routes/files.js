@@ -289,7 +289,8 @@ router.get('/admin/files', verifyToken, async (req, res) => {
         viewUrl: file.webViewLink,
         downloadUrl: file.downloadUrl,
         createdTime: file.createdTime,
-        mimeType: file.mimeType
+        mimeType: file.mimeType,
+        size: file.size,
       }))
     });
   } catch (error) {
@@ -299,51 +300,52 @@ router.get('/admin/files', verifyToken, async (req, res) => {
 });
 
 // Route to get available branches
-router.get('/admin/files', verifyToken, async (req, res) => {
-  try {
-    const { branch, semester, subject, category } = req.query;
+// router.get('/admin/files', verifyToken, async (req, res) => {
+//   try {
+//     const { branch, semester, subject, category } = req.query;
 
-    // Validate query parameters
-    if (!branch || !semester || !subject || !category) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing required filters: branch, semester, subject, or category",
-      });
-    }
+//     // Validate query parameters
+//     if (!branch || !semester || !subject || !category) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "Missing required filters: branch, semester, subject, or category",
+//       });
+//     }
 
-    // Fetch files from DriveService based on filters
-    const files = await DriveService.listAdminFiles(branch, semester, subject, category);
+//     // Fetch files from DriveService based on filters
+//     const files = await DriveService.listAdminFiles(branch, semester, subject, category);
 
-    if (!files || files.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No files found for the given filters",
-      });
-    }
+//     if (!files || files.length === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "No files found for the given filters",
+//       });
+//     }
 
-    // Map the files to the desired response format
-    const formattedFiles = files.map(file => ({
-      id: file.id,
-      name: file.name,
-      viewUrl: file.webViewLink,
-      downloadUrl: file.downloadUrl,
-      createdTime: file.createdTime,
-      mimeType: file.mimeType,
-    }));
+//     // Map the files to the desired response format
+//     const formattedFiles = files.map(file => ({
+//       id: file.id,
+//       name: file.name,
+//       viewUrl: file.webViewLink,
+//       downloadUrl: file.downloadUrl,
+//       createdTime: file.createdTime,
+//       mimeType: file.mimeType,
+//       size: file.size,
+//     }));
 
-    // Send response
-    res.json({
-      success: true,
-      files: formattedFiles,
-    });
-  } catch (error) {
-    console.error("Error in /admin/files:", error.message);
-    res.status(500).json({
-      success: false,
-      error: "Failed to retrieve file list",
-    });
-  }
-});
+//     // Send response
+//     res.json({
+//       success: true,
+//       files: formattedFiles,
+//     });
+//   } catch (error) {
+//     console.error("Error in /admin/files:", error.message);
+//     res.status(500).json({
+//       success: false,
+//       error: "Failed to retrieve file list",
+//     });
+//   }
+// });
 
 // Route to get subjects for a branch and semester
 router.get('/admin/subjects', verifyToken, async (req, res) => {
@@ -369,6 +371,24 @@ router.get('/admin/subjects', verifyToken, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to retrieve subjects" });
+  }
+
+});
+
+router.get('/admin/directory-tree',  async (req, res) => {
+  try {
+    const directoryTree = await DriveService.getDirectoryTree();
+    
+    res.json({
+      success: true,
+      tree: directoryTree
+    });
+  } catch (error) {
+    console.error("Error getting directory tree:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to retrieve directory structure"
+    });
   }
 });
 

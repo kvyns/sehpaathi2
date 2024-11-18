@@ -398,19 +398,19 @@ static async deleteFile(uid, fileId) {
     try {
       const adminFolder = await this.ensureAdminFolder();
       let targetFolderId = adminFolder.id;
-      
+  
       if (branch) {
         const branchFolder = await this.ensureSubFolder(adminFolder.id, branch);
         targetFolderId = branchFolder.id;
-        
+  
         if (semester) {
           const semesterFolder = await this.ensureSubFolder(branchFolder.id, `Semester ${semester}`);
           targetFolderId = semesterFolder.id;
-
+  
           if (subject) {
             const subjectFolder = await this.ensureSubFolder(semesterFolder.id, subject);
             targetFolderId = subjectFolder.id;
-          
+  
             if (category) {
               const categoryFolder = await this.ensureSubFolder(subjectFolder.id, category);
               targetFolderId = categoryFolder.id;
@@ -418,19 +418,154 @@ static async deleteFile(uid, fileId) {
           }
         }
       }
-
+  
       const response = await drive.files.list({
         q: `'${targetFolderId}' in parents and trashed=false`,
-        fields: 'files(id, name, webViewLink, webContentLink, createdTime, mimeType)',
+        fields: 'files(id, name, webViewLink, webContentLink, createdTime, size, mimeType)',
         orderBy: 'createdTime desc',
       });
-
+  
       return response.data.files.map(file => ({
-        ...file,
-        downloadUrl: file.webContentLink
+        id: file.id,
+        name: file.name,
+        webViewLink: file.webViewLink,
+        webContentLink: file.webContentLink,
+        createdTime: file.createdTime,
+        size: file.size, // Include file size explicitly
+        mimeType: file.mimeType,
+        downloadUrl: file.webContentLink, // Alias for convenience
       }));
     } catch (error) {
       throw new Error('Failed to list admin files: ' + error.message);
+    }
+  }
+  
+
+  static async listAllAdminFiles() {
+    try {
+      const adminFolder = await this.ensureAdminFolder();
+      const allFiles = [];
+      
+      // Get all branches
+      const branchesResponse = await drive.files.list({
+        q: `'${adminFolder.id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        fields: 'files(id, name)'
+      });
+
+      // For each branch
+      for (const branch of branchesResponse.data.files) {
+        // Get semesters
+        const semestersResponse = await drive.files.list({
+          q: `'${branch.id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+          fields: 'files(id, name)'
+        });
+
+        for (const semester of semestersResponse.data.files) {
+          // Get subjects
+          const subjectsResponse = await drive.files.list({
+            q: `'${semester.id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+            fields: 'files(id, name)'
+          });
+
+          for (const subject of subjectsResponse.data.files) {
+            // Get categories
+            const categoriesResponse = await drive.files.list({
+              q: `'${subject.id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+              fields: 'files(id, name)'
+            });
+
+            for (const category of categoriesResponse.data.files) {
+              // Get files in this category
+              const filesResponse = await drive.files.list({
+                q: `'${category.id}' in parents and trashed=false`,
+                fields: 'files(id, name, webViewLink, webContentLink, createdTime, mimeType)'
+              });
+
+              // Add files with their full path info
+              filesResponse.data.files.forEach(file => {
+                allFiles.push({
+                  ...file,
+                  downloadUrl: file.webContentLink,
+                  branch: branch.name,
+                  semester: semester.name.replace('Semester ', ''),
+                  subject: subject.name,
+                  category: category.name
+                });
+              });
+            }
+          }
+        }
+      }
+
+      return allFiles;
+    } catch (error) {
+      console.error("Error listing all admin files:", error);
+      throw error;
+    }
+  }
+
+  static async getDirectoryTree() {
+    try {
+      const adminFolder = await this.ensureAdminFolder();
+      const tree = {
+        name: 'root',
+        type: 'folder',
+        children: {}
+      };
+
+      // Get all files first
+      const allFiles = await this.listAllAdminFiles();
+
+      // Build tree structure
+      allFiles.forEach(file => {
+        const path = [file.branch, `Semester ${file.semester}`, file.subject, file.category];
+        let current = tree;
+
+        path.forEach((segment, index) => {
+          if (!current.children[segment]) {
+            current.children[segment] = {
+              name: segment,
+              type: 'folder',
+              children: {}
+            };
+          }
+          current = current.children[segment];
+
+          if (index === path.length - 1) {
+            if (!current.children.files) {
+              current.children.files = [];
+            }
+            current.children.files.push({
+              id: file.id,
+              name: file.name,
+              type: 'file',
+              viewUrl: file.webViewLink,
+              downloadUrl: file.downloadUrl,
+              createdTime: file.createdTime,
+              mimeType: file.mimeType
+            });
+          }
+        });
+      });
+
+      // Convert children objects to arrays
+      const convertChildrenToArray = (node) => {
+        if (node.children && typeof node.children === 'object' && !Array.isArray(node.children)) {
+          const childrenArray = Object.values(node.children).map(child => {
+            if (child.type === 'folder') {
+              return convertChildrenToArray(child);
+            }
+            return child;
+          });
+          node.children = childrenArray;
+        }
+        return node;
+      };
+
+      return convertChildrenToArray(tree);
+    } catch (error) {
+      console.error("Error getting directory tree:", error);
+      throw new Error("Failed to retrieve directory structure: " + error.message);
     }
   }
 
