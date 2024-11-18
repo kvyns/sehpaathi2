@@ -49,6 +49,11 @@ const Dashboard = () => {
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
 
+  const API_BASE_URL = 
+  import.meta.env.VITE_ENVIRONMENT === "local" 
+    ? "http://localhost:3000" 
+    : `${import.meta.env.VITE_BACKEND_URL}`;
+
   // Handlers
   const handleSelectRole = (role) => {
     setSelectedRole(role);
@@ -141,7 +146,7 @@ const Dashboard = () => {
       // console.log(aiInput);
       setIsTyping(true)
       // console.log(`${import.meta.env.VITE_BACKEND_URL}/api/chat/message`)
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/chat/message`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

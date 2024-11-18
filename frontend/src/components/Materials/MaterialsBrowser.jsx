@@ -1,7 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { materialService } from "../../services/materialServices";
-import { Download, Upload, X, FileText, Loader2, FolderOpen, Search } from 'lucide-react';
-import { Eye } from 'lucide-react';
+import { 
+  Download, Upload, X, FileText, Loader2, FolderOpen, Search,
+  ChevronRight, ChevronDown, ChevronLeft, Folder, File, Eye, RefreshCw
+} from 'lucide-react';
 import { selectUserRole } from '../../features/user/userSlice';
 import { useSelector } from 'react-redux';
 
@@ -23,9 +25,171 @@ const MaterialBrowser = ({
   const [uploadProgress, setUploadProgress] = useState({});
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingTree, setLoadingTree] = useState(false);
   const [error, setError] = useState(null);
-  const fileInputRef = useRef(null);
-  const userRole = useSelector(selectUserRole)
+  const [errorTree, setErrorTree] = useState(null);
+  const [expandedNodes, setExpandedNodes] = useState(new Set(['root']));
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [treeData, setTreeData] = useState(null);
+  const userRole = useSelector(selectUserRole);
+	const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    fetchTreeData();
+  }, []);
+
+  const fetchTreeData = async () => {
+    setLoadingTree(true);
+    setErrorTree(null);
+    try {
+      const response = await materialService.getFileTree();
+      if (response?.success && response?.tree) {
+        setTreeData(response.tree);
+      } else {
+        throw new Error('Invalid tree data received');
+      }
+    } catch (err) {
+      console.error('Error fetching file tree:', err);
+      setError('Failed to load file structure. Please try again.');
+    } finally {
+      setLoadingTree(false);
+    }
+  };
+
+  // Fixed node toggling with path validation
+  const toggleNode = (nodePath) => {
+    if (!nodePath) return;
+    
+    const newExpanded = new Set(expandedNodes);
+    if (newExpanded.has(nodePath)) {
+      // Remove this node and all its children
+      Array.from(newExpanded).forEach(path => {
+        if (path.startsWith(nodePath)) {
+          newExpanded.delete(path);
+        }
+      });
+    } else {
+      newExpanded.add(nodePath);
+    }
+    setExpandedNodes(newExpanded);
+  };
+
+  // Handle item selection
+  const handleItemSelect = (node, path) => {
+    if (!node || !path) return;
+
+    setSelectedItem({ ...node, path });
+    if (node.type === 'folder') {
+      toggleNode(path);
+    }
+  };
+
+  // Improved file icon selection based on MIME type
+  const getFileIcon = (mimeType) => {
+    switch (mimeType) {
+      case 'application/pdf':
+        return <FileText className="w-4 h-4 mr-1 text-red-500" />;
+      case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+        return <FileText className="w-4 h-4 mr-1 text-orange-500" />;
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        return <FileText className="w-4 h-4 mr-1 text-blue-500" />;
+      default:
+        return <File className="w-4 h-4 mr-1 text-gray-500" />;
+    }
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Render tree node with proper handling of nested files
+  const renderTreeNode = (node, path = '') => {
+    if (!node?.name) return null;
+
+    const currentPath = path ? `${path}/${node.name}` : node.name;
+    const isExpanded = expandedNodes.has(currentPath);
+    const hasChildren = node.children && node.children.length > 0;
+    const isSelected = selectedItem?.path === currentPath;
+
+    // Handle files that might be nested in arrays
+    const renderFiles = (items) => {
+      if (Array.isArray(items[0])) {
+        return items[0].map((file, index) => renderTreeNode(file, currentPath));
+      }
+      return items.map((item, index) => renderTreeNode(item, currentPath));
+    };
+
+    return (
+      <div key={currentPath} className="select-none">
+        <div
+          className={`flex items-center p-1 hover:bg-gray-100 cursor-pointer ${
+            isSelected ? 'bg-blue-100' : ''
+          }`}
+          onClick={() => handleItemSelect(node, currentPath)}
+          style={{ paddingLeft: `${path.split('/').length * 12}px` }}
+        >
+          {hasChildren && node.type === 'folder' && (
+            <button 
+              className="mr-1 focus:outline-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleNode(currentPath);
+              }}
+            >
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
+            </button>
+          )}
+          
+          {node.type === 'folder' ? (
+            <Folder className="w-4 h-4 mr-1 text-yellow-500" />
+          ) : (
+            getFileIcon(node.mimeType)
+          )}
+          
+          <span className="text-sm truncate flex-1">{node.name}</span>
+          
+          {node.type === 'file' && (
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-500">
+                {formatDate(node.createdTime)}
+              </span>
+              <a
+                href={node.viewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 hover:bg-blue-100 rounded-full transition-colors"
+              >
+                <Eye className="w-4 h-4 text-blue-500" />
+              </a>
+              <a
+                href={node.downloadUrl}
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 hover:bg-blue-100 rounded-full transition-colors"
+              >
+                <Download className="w-4 h-4 text-blue-500" />
+              </a>
+            </div>
+          )}
+        </div>
+        
+        {hasChildren && isExpanded && (
+          <div>
+            {renderFiles(node.children)}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const handleSearch = async () => {
     if (!selectedBranch || !selectedSemester || !selectedSubject) {
@@ -43,7 +207,7 @@ const MaterialBrowser = ({
         selectedMaterialType
       );
 
-      // console.log(response)
+      console.log(response)
       if (response && typeof response.success === 'boolean') {
         if (response.success && Array.isArray(response.files)) {
           setFileList(response.files); // Directly use the files from the response
@@ -187,6 +351,7 @@ const removeFile = (fileId) => {
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm">
+      {/* Main Content */}
       <h2 className="text-xl font-bold mb-4">Browse & Upload Study Materials</h2>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -353,7 +518,6 @@ const removeFile = (fileId) => {
         </>
       )}
 
-
       {/* File List Section */}
       <div className="mb-6">
         <h3 className="font-medium mb-4">Available Files</h3>
@@ -383,7 +547,7 @@ const removeFile = (fileId) => {
                   <div>
                     <p className="font-medium">{file.name}</p>
                     <p className="text-sm text-gray-500">
-                      {formatFileSize(file.size)} • Uploaded {new Date(file.uploadDate).toLocaleDateString()}
+                      {formatFileSize(file.size)} • Uploaded {new Date(file.createdTime).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -399,6 +563,38 @@ const removeFile = (fileId) => {
           </div>
         )}
       </div>
+            {/* file tree */}
+            <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">File Explorer</h2>
+        <button
+          onClick={fetchTreeData}
+          className="p-2 hover:bg-gray-100 rounded-lg"
+          disabled={loadingTree}
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
+
+      {error && (
+        <div className="text-red-500 p-4 mb-4 bg-red-50 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+        </div>
+      ) : !treeData ? (
+        <div className="text-center p-8 bg-gray-50 rounded-lg">
+          <FolderOpen className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-gray-500">No files available</p>
+        </div>
+      ) : (
+        <div className="overflow-auto max-h-[calc(100vh-200px)]">
+          {renderTreeNode(treeData)}
+        </div>
+      )}
 
       {/* Material Type Summary */}
       {/* <div className="grid md:grid-cols-3 gap-4">

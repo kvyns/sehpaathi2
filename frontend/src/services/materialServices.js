@@ -1,6 +1,11 @@
 import { auth } from "../auth/firebase";
 
-const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL}/api/files/admin`;
+const API_BASE_URL = 
+  import.meta.env.VITE_ENVIRONMENT === "local" 
+    ? "http://localhost:3000/api/files/admin" 
+    : `${import.meta.env.VITE_BACKEND_URL}/api/files/admin`;
+
+    console.log(API_BASE_URL)
 
 export const materialService = {
   async uploadFiles(formData) {
@@ -96,10 +101,20 @@ export const materialService = {
           error.message || error.error || "Failed to fetch files"
         );
       }
-
       return await response.json();
     } catch (error) {
       console.error("List error:", error);
+      throw error;
+    }
+  },
+
+   async getFileTree(){
+    try {
+      const response = await fetch(`${API_BASE_URL}/directory-tree`); 
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching file tree:', error);
       throw error;
     }
   },
