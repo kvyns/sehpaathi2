@@ -51,6 +51,32 @@ const getServiceStatus = () => {
   };
 };
 
+// Check Groq API connectivity
+const checkGroqAPI = async () => {
+  try {
+    const groqService = require('../services/groq');
+    const startTime = Date.now();
+
+    // Send a simple test message to Groq
+    const testMessage = 'Hello';
+    await groqService.generateResponse(testMessage);
+
+    const latency = Date.now() - startTime;
+    return {
+      status: 'operational',
+      latency: `${latency}ms`,
+      apiKey: process.env.GROQ_API_KEY ? 'configured' : 'missing'
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      error: error.message,
+      apiKey: process.env.GROQ_API_KEY ? 'configured' : 'missing',
+      details: error.response?.data || error.code
+    };
+  }
+};
+
 // Main health check route
 router.get('/', async (req, res) => {
   try {
@@ -137,6 +163,26 @@ router.get('/services', (req, res) => {
     res.status(500).json({
       status: 'error',
       error: error.message
+    });
+  }
+});
+
+// Groq API health check
+router.get('/groq', async (req, res) => {
+  try {
+    const groqStatus = await checkGroqAPI();
+    const statusCode = groqStatus.status === 'operational' ? 200 : 503;
+    res.status(statusCode).json({
+      status: groqStatus.status,
+      timestamp: new Date().toISOString(),
+      groq: groqStatus
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
